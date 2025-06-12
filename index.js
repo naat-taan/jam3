@@ -1,7 +1,39 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
+// =================================================================================
+// ÍNDICE DO CÓDIGO DO JOGO
+// =================================================================================
+//
+// 1.  CONFIGURAÇÕES GLOBAIS
+//     - Constantes Globais do Jogo: Dimensões, física e jogabilidade.
+//     - Configuração da Loja de Upgrades: Custos e atributos das melhorias.
+//
+// 2.  CLASSES DE ENTIDADES DO JOGO
+//     - Vector2D: Classe utilitária para vetores 2D.
+//     - Player: Classe principal do jogador, com toda a lógica de estado e ações.
+//     - Platform: Classe para as plataformas do cenário.
+//     - Enemy: Classe base para todos os inimigos.
+//     - SkeletonMelee: Subclasse para o esqueleto com espada.
+//     - SkeletonArcher: Subclasse para o esqueleto arqueiro.
+//     - Arrow: Classe para os projéteis dos arqueiros.
+//
+// 3.  LÓGICA DO JOGO
+//     - Geração Procedural: Função para criar novas partes do nível.
+//
+// 4.  COMPONENTES REACT (INTERFACE DO USUÁRIO)
+//     - MainMenu: Componente da tela de menu principal.
+//     - AboutScreen: Componente da tela "Sobre".
+//     - ShopScreen: Componente da tela da "Forja das Almas" (loja).
+//     - Game: Componente principal onde a jogabilidade acontece.
+//     - GameOverScreen: Componente da tela de fim de jogo.
+//     - App: Componente raiz que gerencia o estado geral e as telas do jogo.
+//
+// =================================================================================
+
+
+// --- 1. CONFIGURAÇÕES GLOBAIS ---
+
 // --- Constantes Globais do Jogo ---
-// Definem as dimensões da tela e as propriedades físicas e de jogabilidade.
 const SCREEN_WIDTH = 800;
 const SCREEN_HEIGHT = 600;
 const PLAYER_WIDTH = 32;
@@ -23,8 +55,6 @@ const MAX_PLATFORM_Y_VAR = 40;
 const ENEMY_SPAWN_CHANCE = 0.7; // Chance base de um inimigo aparecer numa plataforma
 
 // --- Configuração da Loja de Upgrades ---
-// Objeto que define os atributos, custos e descrições de cada melhoria.
-// Usado para calcular os stats do jogador e os custos na loja.
 const UPGRADES_CONFIG = {
     health: { base: 3, cost: 2500, costIncrease: 2.2, description: "Vida Máxima" },
     damage: { base: 1, cost: 5000, costIncrease: 2.5, description: "Dano da Espada" },
@@ -34,11 +64,10 @@ const UPGRADES_CONFIG = {
 };
 
 
-// --- Classes de Entidades do Jogo ---
+// --- 2. CLASSES DE ENTIDADES DO JOGO ---
 
 /**
  * Representa um vetor 2D para posições e velocidades.
- * Simplifica as operações matemáticas de movimento.
  */
 class Vector2D {
     constructor(x, y) { this.x = x; this.y = y; }
@@ -47,7 +76,6 @@ class Vector2D {
 
 /**
  * Representa o jogador, controlando seu estado, ações e renderização.
- * Contém toda a lógica de movimento, combate e interação.
  */
 class Player {
     constructor(stats) {
@@ -68,100 +96,77 @@ class Player {
 
         // Estados de combate e interação
         this.isAttacking = false; this.isBlocking = false; this.canBlock = true;
-        this.blockCooldown = 0; // Cooldown atual do escudo
-        this.blockReadyPulse = 0; // Duração da animação de pulso quando o escudo está pronto
-        this.attackBox = { x: 0, y: 0, width: 50, height: 50 }; // Área de dano do ataque
-        this.attackCooldown = 0; // Cooldown atual do ataque
-        this.invincibilityFrames = 0; // Frames de invencibilidade após sofrer dano
-        this.direction = 1; // 1 para direita, -1 para esquerda
+        this.blockCooldown = 0; 
+        this.blockReadyPulse = 0; 
+        this.attackBox = { x: 0, y: 0, width: 50, height: 50 }; 
+        this.attackCooldown = 0; 
+        this.invincibilityFrames = 0; 
+        this.direction = 1; 
     }
 
-    /** Aplica a força da gravidade à velocidade vertical do jogador. */
     applyGravity() {
         this.velocity.y += GRAVITY;
         this.onGround = false;
     }
 
-    /** Faz o jogador pular se estiver no chão e não bloqueando. */
     jump() {
         if (!this.isJumping && this.onGround && !this.isBlocking) {
             this.velocity.y = -JUMP_FORCE; this.isJumping = true;
         }
     }
     
-    /** Inicia um ataque se o cooldown permitir e não estiver bloqueando. */
     attack() {
         if (this.attackCooldown <= 0 && !this.isBlocking) {
             this.isAttacking = true; this.attackCooldown = this.attackCooldownDuration;
         }
     }
 
-    /**
-     * Aplica dano ao jogador. Se estiver bloqueando, gasta uma carga do escudo.
-     * Caso contrário, reduz a vida e ativa frames de invencibilidade.
-     * @param {number} amount A quantidade de dano a ser recebida.
-     */
     takeDamage(amount) {
-        if (this.invincibilityFrames > 0) return; // Se está invencível, não sofre dano
+        if (this.invincibilityFrames > 0) return; 
 
         if (this.isBlocking) {
-            this.blockCharges--; // Gasta uma carga do escudo
-            if (this.blockCharges <= 0) { // Se as cargas acabaram, entra em cooldown
+            this.blockCharges--; 
+            if (this.blockCharges <= 0) { 
                 this.blockCooldown = this.blockCooldownDuration;
                 this.canBlock = false;
                 this.isBlocking = false;
             }
         } else {
             this.health -= amount;
-            this.invincibilityFrames = 90; // Ativa invencibilidade por 1.5s
+            this.invincibilityFrames = 90; 
         }
     }
 
-    /**
-     * Cura o jogador, limitado à sua vida máxima.
-     * @param {number} amount A quantidade de vida a ser recuperada.
-     */
     heal(amount) {
         this.health = Math.min(this.maxHealth, this.health + amount);
     }
 
-    /** Atualiza o estado do jogador a cada frame (movimento, cooldowns, etc.). */
     update() {
-        // Movimento é interrompido durante o bloqueio
         if (!this.isBlocking) { this.position.add(this.velocity);
-        } else { this.position.y += this.velocity.y; } // Permite apenas movimento vertical (gravidade)
+        } else { this.position.y += this.velocity.y; }
 
-        // Atualiza cooldowns
         if (this.attackCooldown > 0) this.attackCooldown--;
         if (this.invincibilityFrames > 0) this.invincibilityFrames--;
         
-        // Lógica do cooldown e pulso do escudo
         if (this.blockCooldown > 0) {
             this.blockCooldown--;
             if (this.blockCooldown <= 0) {
                 this.canBlock = true;
-                this.blockReadyPulse = 30; // Ativa animação de pulso
-                this.blockCharges = this.blockChargesMax; // Restaura cargas
+                this.blockReadyPulse = 30; 
+                this.blockCharges = this.blockChargesMax;
             }
         }
         
         if (this.blockReadyPulse > 0) this.blockReadyPulse--;
         
-        // Atualiza a direção do personagem
         if (!this.isBlocking && this.velocity.x !== 0) { this.direction = Math.sign(this.velocity.x); }
 
-        // Posiciona a caixa de ataque
         this.attackBox.x = this.direction > 0 ? this.position.x + this.width : this.position.x - this.attackBox.width;
         this.attackBox.y = this.position.y;
         
         if (this.attackCooldown < 20) { this.isAttacking = false; }
     }
     
-    /**
-     * Lida com a colisão entre o jogador e uma plataforma.
-     * Verifica colisões em todos os quatro lados para um comportamento sólido.
-     * @param {Platform} platform A plataforma com a qual verificar a colisão.
-     */
     handleCollision(platform) {
         const p = { left: this.position.x, right: this.position.x + this.width, top: this.position.y, bottom: this.position.y + this.height,
             prevTop: this.position.y - this.velocity.y, prevBottom: this.position.y + this.height - this.velocity.y,
@@ -170,29 +175,24 @@ class Player {
         const plat = { left: platform.x, right: platform.x + platform.width, top: platform.y, bottom: platform.y + platform.height };
 
         if (p.right > plat.left && p.left < plat.right) {
-            // Colisão com o topo (pousando)
             if (this.velocity.y >= 0 && p.bottom >= plat.top && p.prevBottom <= plat.top) {
                 this.position.y = plat.top - this.height; this.velocity.y = 0; this.isJumping = false; this.onGround = true; return;
             }
-            // Colisão com a base (batendo a cabeça)
             if (this.velocity.y < 0 && p.top <= plat.bottom && p.prevTop >= plat.bottom) {
                 this.position.y = plat.bottom; this.velocity.y = 0; return;
             }
         }
-        // Colisão com as laterais
         if (p.bottom > plat.top) {
             if (this.velocity.x > 0 && p.right > plat.left && p.prevRight <= plat.left) { this.position.x = plat.left - this.width; this.velocity.x = 0; return; }
             if (this.velocity.x < 0 && p.left < plat.right && p.prevLeft >= plat.right) { this.position.x = plat.right; this.velocity.x = 0; return; }
         }
     }
     
-    /** Desenha o indicador de cooldown e cargas do escudo. */
     drawBlockCooldown(ctx, cameraX) {
         const indicatorX = this.position.x + this.width / 2 - cameraX;
         const indicatorY = this.position.y - 20;
         const radius = 8;
         
-        // Mostra as cargas do escudo quando está pronto
         if (this.blockCooldown <= 0 && this.blockReadyPulse <= 0 && this.canBlock) {
              for(let i = 0; i < this.blockCharges; i++) {
                 ctx.beginPath();
@@ -203,7 +203,6 @@ class Player {
              return;
         }
 
-        // Desenha o círculo de recarga
         ctx.beginPath(); ctx.arc(indicatorX, indicatorY, radius, 0, 2 * Math.PI); ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.fill();
         if (this.blockCooldown > 0) {
             const fillRatio = (this.blockCooldownDuration - this.blockCooldown) / this.blockCooldownDuration;
@@ -218,7 +217,6 @@ class Player {
         }
     }
 
-    /** Desenha o jogador e seus efeitos (bloqueio, ataque) no canvas. */
     draw(ctx, cameraX, assets) {
         ctx.save();
         ctx.fillStyle = (this.invincibilityFrames > 0 && Math.floor(this.invincibilityFrames / 6) % 2 === 0) ? '#ff4d4d' : '#4A4A4A';
@@ -239,7 +237,6 @@ class Player {
     }
 }
 
-// --- OUTRAS CLASSES ---
 class Platform {
     constructor(x, y, width) { this.x = x; this.y = y; this.width = width; this.height = PLATFORM_HEIGHT; }
     draw(ctx, cameraX, assets) {
@@ -314,7 +311,9 @@ class Arrow {
     draw(ctx, cX) { ctx.fillStyle = '#F5F5F5'; ctx.fillRect(this.position.x - cX, this.position.y, this.width, this.height); }
 }
 
-// --- GERAÇÃO PROCEDURAL ---
+// --- 3. LÓGICA DO JOGO ---
+
+/** Gera um novo pedaço do nível com plataformas e, possivelmente, inimigos. */
 const generateLevelChunk = (lastX, lastY, difficultyLevel) => {
     const newPlatforms = []; const newEnemies = [];
     const gap = MIN_PLATFORM_GAP + Math.random() * (MAX_PLATFORM_GAP - MIN_PLATFORM_GAP); const newX = lastX + gap;
@@ -331,8 +330,9 @@ const generateLevelChunk = (lastX, lastY, difficultyLevel) => {
     return { newPlatforms, newEnemies };
 };
 
-// --- COMPONENTES REACT ---
+// --- 4. COMPONENTES REACT (INTERFACE DO USUÁRIO) ---
 
+/** Componente da tela de menu principal. */
 const MainMenu = ({ onStart, onAbout, onShop }) => (
     <div className="w-full h-full bg-gray-900 flex flex-col justify-center items-center text-white p-8 border-4 border-gray-700 relative">
         <div className="flex flex-col items-center">
@@ -350,6 +350,7 @@ const MainMenu = ({ onStart, onAbout, onShop }) => (
     </div>
 );
 
+/** Componente da tela "Sobre". */
 const AboutScreen = ({ onBack }) => (
     <div className="w-full h-full bg-gray-900 flex flex-col justify-center items-center text-white p-8 border-4 border-gray-700">
         <h1 className="text-4xl font-cinzel font-bold mb-6 text-gray-300">Sobre a Obra</h1>
@@ -366,6 +367,7 @@ const AboutScreen = ({ onBack }) => (
     </div>
 );
 
+/** Componente da loja de upgrades. */
 const ShopScreen = ({ onBack, onRestartGame, hasPlayedOnce, totalSouls, upgrades, purchaseUpgrade }) => {
     const getUpgradeCost = (key) => Math.floor(UPGRADES_CONFIG[key].cost * Math.pow(UPGRADES_CONFIG[key].costIncrease, upgrades[key]));
 
@@ -405,6 +407,7 @@ const ShopScreen = ({ onBack, onRestartGame, hasPlayedOnce, totalSouls, upgrades
 };
 
 
+/** Componente principal onde a jogabilidade acontece. */
 const Game = ({ playerStats, onGameOver }) => {
     const canvasRef = useRef(null);
     const playerRef = useRef(new Player(playerStats));
@@ -537,6 +540,7 @@ const Game = ({ playerStats, onGameOver }) => {
     return <canvas ref={canvasRef} width={SCREEN_WIDTH} height={SCREEN_HEIGHT} />;
 };
 
+/** Componente da tela de fim de jogo. */
 const GameOverScreen = ({ score, onGoToMenu, onGoToShop, onRestartGame }) => (
     <div className="w-full h-full bg-black bg-opacity-80 flex flex-col justify-center items-center text-white p-8">
         <h1 className="text-7xl font-cinzel font-bold text-red-700 mb-4 drop-shadow-[0_0_8px_rgba(255,0,0,0.7)]">VOCÊ MORREU</h1>
@@ -558,6 +562,7 @@ const GameOverScreen = ({ score, onGoToMenu, onGoToShop, onRestartGame }) => (
     </div>
 );
 
+/** Componente raiz que gerencia o estado geral e as telas do jogo. */
 export default function App() {
     const [gameState, setGameState] = useState('menu');
     const [totalSouls, setTotalSouls] = useState(0);
