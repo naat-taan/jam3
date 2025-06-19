@@ -1,0 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+
+.font-cinzel { font-family: 'Cinzel', serif; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fading-name { display: inline-block; animation: fadeIn 3s ease-in-out infinite alternate; padding: 2px; opacity: 0; }
