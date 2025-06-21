@@ -1,5 +1,5 @@
 // --- Constantes Globais do Jogo ---
-export const SCREEN_WIDTH = 800;
+export const SCREEN_WIDTH = 1200;
 export const SCREEN_HEIGHT = 600;
 export const PLAYER_WIDTH = 32;
 export const PLAYER_HEIGHT = 48;

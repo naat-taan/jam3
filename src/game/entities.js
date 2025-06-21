@@ -197,14 +197,29 @@ export class Platform {
             ctx.fillRect(0, 0, this.width, this.height);
             ctx.restore();
         } else {
-            // Fallback caso a textura não carregue
+            // Fallback caso a textura não carregue para a plataforma
             ctx.fillStyle = '#616161';
             ctx.fillRect(screenX, this.y, this.width, this.height);
         }
 
-        // Desenha a "terra" embaixo da plataforma
-        ctx.fillStyle = '#424242';
-        ctx.fillRect(screenX, this.y + this.height, this.width, SCREEN_HEIGHT - (this.y + this.height));
+        // Desenha a "terra" embaixo da plataforma com textura e escurecida
+        if (platformTexture && assets.loaded) {
+            ctx.save();
+            const pattern = ctx.createPattern(platformTexture, 'repeat');
+            ctx.fillStyle = pattern;
+            // Desenha a textura para a parte da terra
+            ctx.translate(screenX, this.y + this.height);
+            ctx.fillRect(0, 0, this.width, SCREEN_HEIGHT - (this.y + this.height));
+            ctx.restore();
+
+            // Aplica uma camada escura semi-transparente para escurecer a textura
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Ajuste a opacidade (0.0 a 1.0) para a escuridão desejada
+            ctx.fillRect(screenX, this.y + this.height, this.width, SCREEN_HEIGHT - (this.y + this.height));
+        } else {
+            // Fallback para a terra se a textura não carregar
+            ctx.fillStyle = '#01010d';
+            ctx.fillRect(screenX, this.y + this.height, this.width, SCREEN_HEIGHT - (this.y + this.height));
+        }
         // Desenha uma linha escura para separar a plataforma da terra
         ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 3; ctx.beginPath();
         ctx.moveTo(screenX, this.y + this.height - 1.5);

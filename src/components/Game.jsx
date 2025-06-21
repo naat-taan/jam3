@@ -9,6 +9,9 @@ const Game = ({ playerStats, onGameOver }) => {
     const assetsRef = useRef({
         platform: null,
         background: null,
+        background2: null,
+        background3: null,
+        background4: null,
         loaded: false,
     });
 
@@ -39,8 +42,11 @@ const Game = ({ playerStats, onGameOver }) => {
     useEffect(() => {
         const platformImg = new Image();
         const backgroundImg = new Image();
+        const backgroundImg2 = new Image();
+        const backgroundImg3 = new Image();
+        const backgroundImg4 = new Image();
         let loadedCount = 0;
-        const totalImages = 2;
+        const totalImages = 5; // 1 plataforma + 4 backgrounds
 
         const onImageLoad = () => {
             loadedCount++;
@@ -51,12 +57,21 @@ const Game = ({ playerStats, onGameOver }) => {
 
         platformImg.onload = onImageLoad;
         backgroundImg.onload = onImageLoad;
+        backgroundImg2.onload = onImageLoad;
+        backgroundImg3.onload = onImageLoad;
+        backgroundImg4.onload = onImageLoad;
 
         platformImg.src = '/assets/images/environment/texture.png';
         backgroundImg.src = '/assets/images/environment/background.png';
+        backgroundImg2.src = '/assets/images/environment/background2.png';
+        backgroundImg3.src = '/assets/images/environment/background3.png';
+        backgroundImg4.src = '/assets/images/environment/background4.png';
 
         assetsRef.current.platform = platformImg;
         assetsRef.current.background = backgroundImg;
+        assetsRef.current.background2 = backgroundImg2;
+        assetsRef.current.background3 = backgroundImg3;
+        assetsRef.current.background4 = backgroundImg4;
     }, []);
 
     // Inicializa o jogador quando playerStats estiver disponível ou mudar
@@ -73,6 +88,24 @@ const Game = ({ playerStats, onGameOver }) => {
     }, [playerStats, initialPlatforms, initialEnemies]);
 
 
+    const drawParallaxLayer = useCallback((ctx, image, cameraX, parallaxFactor) => {
+        if (!image) return;
+        const bgWidth = image.width;
+        const parallaxX = cameraX * parallaxFactor;
+        const offsetX = ((parallaxX % bgWidth) + bgWidth) % bgWidth;
+
+        // Calculate the starting X position for the first image tile
+        // This ensures that the part of the image that should be at the left edge of the screen
+        // (after parallax scroll) is correctly positioned.
+        let startX = -offsetX;
+
+        // Draw tiles until the screen is covered
+        while (startX < SCREEN_WIDTH) {
+            ctx.drawImage(image, startX, 0, bgWidth, SCREEN_HEIGHT);
+            startX += bgWidth; // Move to the next tile position
+        }
+    }, [SCREEN_WIDTH, SCREEN_HEIGHT]); // Adicionado SCREEN_WIDTH e SCREEN_HEIGHT às dependências, embora sejam constantes.
+    
     const gameLoop = useCallback((ctx) => {
         const player = playerRef.current;
         if (!player) return; // Garante que o jogador foi inicializado
@@ -160,15 +193,14 @@ const Game = ({ playerStats, onGameOver }) => {
         if (player.position.y > SCREEN_HEIGHT + player.height) player.takeDamage(50);
         if (player.health <= 0) { onGameOver(scoreRef.current); return; }
 
-         // Desenha o fundo com efeito parallax
-        const bg = assetsRef.current.background;
-        if (bg && assetsRef.current.loaded) {
-            const bgWidth = bg.width;
-            const parallaxX = cameraXRef.current * 0.75;
-            const offsetX = parallaxX % bgWidth;
-
-            ctx.drawImage(bg, -offsetX, 0, bgWidth, SCREEN_HEIGHT);
-            ctx.drawImage(bg, bgWidth - offsetX, 0, bgWidth, SCREEN_HEIGHT); // Desenha a segunda imagem para o tile contínuo
+         // Fundo com efeito parallax
+        if (assetsRef.current.loaded) {
+            const { background, background2, background3, background4 } = assetsRef.current;
+            // Desenha as camadas da mais distante para a mais próxima
+            drawParallaxLayer(ctx, background, cameraXRef.current, 0.1);
+            drawParallaxLayer(ctx, background2, cameraXRef.current, 0.25);
+            drawParallaxLayer(ctx, background3, cameraXRef.current, 0.4);
+            drawParallaxLayer(ctx, background4, cameraXRef.current, 0.5);
         } else {
             const bgGradient = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
             bgGradient.addColorStop(0, '#0a0a0a'); bgGradient.addColorStop(0.6, '#222034'); bgGradient.addColorStop(1, '#444264');
@@ -191,11 +223,11 @@ const Game = ({ playerStats, onGameOver }) => {
         ctx.shadowBlur = 0;
 
         animationFrameIdRef.current = requestAnimationFrame(() => gameLoop(ctx));
-    }, [onGameOver]); // Removido initialPlatforms, initialEnemies das dependências do gameLoop pois são estáveis via useMemo
+    }, [onGameOver, drawParallaxLayer]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas || !playerRef.current) return; // Adicionado verificação para playerRef.current
+        if (!canvas || !playerRef.current) return;
         const ctx = canvas.getContext('2d');
 
         const handleKeyDown = (e) => { keysPressedRef.current[e.key] = true; if (playerRef.current && (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w')) { e.preventDefault(); playerRef.current.jump(); } };
@@ -218,7 +250,7 @@ const Game = ({ playerStats, onGameOver }) => {
                 cancelAnimationFrame(animationFrameIdRef.current);
             }
         };
-    }, [gameLoop, playerStats]); // Adicionado playerStats como dependência para reiniciar o loop/handlers se o jogador for recriado
+    }, [gameLoop, playerStats]);
 
     return <canvas ref={canvasRef} width={SCREEN_WIDTH} height={SCREEN_HEIGHT} />;
 };
