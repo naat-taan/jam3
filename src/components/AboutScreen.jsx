@@ -1,7 +1,7 @@
 import React from 'react';
 
 const AboutScreen = ({ onBack }) => (
-    <div className="w-full h-full bg-gray-900 flex flex-col justify-center items-center text-white p-8 border-4 border-gray-700">
+    <div className="w-full h-full flex flex-col justify-center items-center text-white p-8 border-4 border-gray-700">
         <h1 className="text-4xl font-cinzel font-bold mb-6 text-gray-300">Sobre a Obra</h1>
         <div className="text-lg bg-black bg-opacity-30 p-6 border border-gray-700 rounded-sm w-full max-w-lg">
             <p className="mb-4 text-center text-gray-400">Este jogo foi forjado nas chamas da disciplina.</p>

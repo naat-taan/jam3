@@ -1,21 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MainMenu from './components/MainMenu.jsx';
 import AboutScreen from './components/AboutScreen.jsx';
 import ShopScreen from './components/ShopScreen.jsx';
 import Game from './components/Game.jsx';
 import GameOverScreen from './components/GameOverScreen.jsx';
-import { UPGRADES_CONFIG, SCREEN_WIDTH, SCREEN_HEIGHT } from './game/constants.js';
+import { SCREEN_WIDTH, SCREEN_HEIGHT, UPGRADES_CONFIG } from './game/constants';
 
-export default function App() {
+function App() {
     const [gameState, setGameState] = useState('menu');
     const [totalSouls, setTotalSouls] = useState(0);
+    const [lastScore, setLastScore] = useState(0);
     const [upgrades, setUpgrades] = useState({ health: 0, damage: 0, attackSpeed: 0, blockCharges: 0, blockCooldown: 0 });
     const [playerStats, setPlayerStats] = useState({});
     const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
 
-    // --- Comentários para implementação de música ---
-    // const menuAudioRef = useRef(null);
-    // const gameAudioRef = useRef(null);
+    // --- Implementação da Trilha Sonora ---
+    const menuAudioRef = useRef(null);
+    const gameAudioRef = useRef(null);
+    const [currentMenuTrack, setCurrentMenuTrack] = useState(0);
+    const [currentGameTrack, setCurrentGameTrack] = useState(0);
+
+    // Playlists de música. Crie uma pasta 'public/audio' no seu projeto e coloque os arquivos lá.
+    const menuTracks = ['/assets/sounds/music/main_1.mp3', '/assets/sounds/music/main_2.mp3'];
+    const gameTracks = ['/assets/sounds/music/fight_2.mp3', '/assets/sounds/music/fight_2.mp3' ];
+
+    useEffect(() => {
+        if (menuAudioRef.current) menuAudioRef.current.volume = 0.3;
+        if (gameAudioRef.current) gameAudioRef.current.volume = 0.3;
+    }, []);
 
     useEffect(() => {
         const newStats = {
@@ -28,30 +40,58 @@ export default function App() {
         setPlayerStats(newStats);
     }, [upgrades]);
 
-    /*
-    // --- Comentário para controle de música ---
+    // Efeito para gerenciar a lógica da playlist (alternar músicas ao terminarem)
     useEffect(() => {
         const menuAudio = menuAudioRef.current;
         const gameAudio = gameAudioRef.current;
 
-        if (menuAudio) menuAudio.pause();
-        if (gameAudio) gameAudio.pause();
+        const playNextMenuTrack = () => setCurrentMenuTrack(prev => (prev + 1) % menuTracks.length);
+        const playNextGameTrack = () => setCurrentGameTrack(prev => (prev + 1) % gameTracks.length);
 
-        switch (gameState) {
-            case 'playing':
-                gameAudio?.play().catch(e => console.error("Erro ao tocar música do jogo:", e));
-                break;
-            case 'shop':
-            case 'menu':
-            case 'about':
-            case 'gameOver':
-                menuAudio?.play().catch(e => console.error("Erro ao tocar música do menu:", e));
-                break;
-            default:
-                break;
+        if (menuAudio) menuAudio.addEventListener('ended', playNextMenuTrack);
+        if (gameAudio) gameAudio.addEventListener('ended', playNextGameTrack);
+
+        return () => {
+            if (menuAudio) menuAudio.removeEventListener('ended', playNextMenuTrack);
+            if (gameAudio) gameAudio.removeEventListener('ended', playNextGameTrack);
+        };
+    }, [menuTracks.length, gameTracks.length]);
+
+    // Efeito para controlar play/pause com base no estado do jogo (gameState)
+    useEffect(() => {
+        const menuAudio = menuAudioRef.current;
+        const gameAudio = gameAudioRef.current;
+        const isMenuState = ['menu', 'shop', 'about', 'gameOver'].includes(gameState);
+
+        if (isMenuState) {
+            if (gameAudio && !gameAudio.paused) gameAudio.pause();
+            if (menuAudio && menuAudio.paused) {
+                menuAudio.play().catch(e => console.error("Erro ao tocar música do menu:", e));
+            }
+        } else if (gameState === 'playing') {
+            if (menuAudio && !menuAudio.paused) menuAudio.pause();
+            if (gameAudio && gameAudio.paused) {
+                gameAudio.play().catch(e => console.error("Erro ao tocar música do jogo:", e));
+            }
         }
     }, [gameState]);
-    */
+
+    // Efeito para tocar a próxima música da playlist de MENU quando o índice mudar
+    useEffect(() => {
+        const audio = menuAudioRef.current;
+        const isMenuState = ['menu', 'shop', 'about', 'gameOver'].includes(gameState);
+        if (audio && isMenuState && audio.paused) {
+            audio.play().catch(e => console.error("Erro ao tocar música do menu:", e));
+        }
+    }, [currentMenuTrack, gameState]);
+
+    // Efeito para tocar a próxima música da playlist de JOGO quando o índice mudar
+    useEffect(() => {
+        const audio = gameAudioRef.current;
+        if (audio && gameState === 'playing' && audio.paused) {
+            audio.play().catch(e => console.error("Erro ao tocar música do jogo:", e));
+        }
+    }, [currentGameTrack, gameState]);
 
     const handlePurchaseUpgrade = (key) => {
         const cost = Math.floor(UPGRADES_CONFIG[key].cost * Math.pow(UPGRADES_CONFIG[key].costIncrease, upgrades[key]));
@@ -61,36 +101,40 @@ export default function App() {
         }
     };
 
-    const handleStartGame = () => {
-        setHasPlayedOnce(true);
-        setGameState('playing');
-    };
-
-    const handleGameOver = (earnedSouls) => {
-        setTotalSouls(prev => prev + earnedSouls);
+    const handleGameOver = (score) => {
+        setTotalSouls(prev => prev + score);
+        setLastScore(score);
         setGameState('gameOver');
-    }
+    };
 
     const renderGameState = () => {
         switch (gameState) {
-            case 'playing': return <Game playerStats={playerStats} onGameOver={handleGameOver} />;
-            case 'shop': return <ShopScreen onBack={() => setGameState('menu')} onRestartGame={handleStartGame} hasPlayedOnce={hasPlayedOnce} totalSouls={totalSouls} upgrades={upgrades} purchaseUpgrade={handlePurchaseUpgrade} />;
-            case 'about': return <AboutScreen onBack={() => setGameState('menu')} />;
-            case 'gameOver': return <GameOverScreen score={totalSouls} onGoToMenu={() => setGameState('menu')} onGoToShop={() => setGameState('shop')} onRestartGame={handleStartGame} />
-            default: return <MainMenu onStart={handleStartGame} onAbout={() => setGameState('about')} onShop={() => setGameState('shop')} />;
+            case 'menu':
+                return <MainMenu onStart={() => { setGameState('playing'); setHasPlayedOnce(true); }} onAbout={() => setGameState('about')} onShop={() => setGameState('shop')} />;
+            case 'about':
+                return <AboutScreen onBack={() => setGameState('menu')} />;
+            case 'shop':
+                return <ShopScreen onBack={() => setGameState('menu')} onRestartGame={() => { setGameState('playing'); setHasPlayedOnce(true); }} hasPlayedOnce={hasPlayedOnce} totalSouls={totalSouls} upgrades={upgrades} purchaseUpgrade={handlePurchaseUpgrade} />;
+            case 'playing':
+                return <Game playerStats={playerStats} onGameOver={handleGameOver} />;
+            case 'gameOver':
+                return <GameOverScreen score={lastScore} onGoToMenu={() => setGameState('menu')} onGoToShop={() => setGameState('shop')} onRestartGame={() => setGameState('playing')} />;
+            default:
+                return <MainMenu onStart={() => { setGameState('playing'); setHasPlayedOnce(true); }} onAbout={() => setGameState('about')} onShop={() => setGameState('shop')} />;
         }
     };
 
     return (
         <div className="bg-black flex justify-center items-center min-h-screen">
-            {/* 
-            // --- elementos de áudio ---
-            <audio ref={menuAudioRef} src="URL_DA_MUSICA_DO_MENU.mp3" loop />
-            <audio ref={gameAudioRef} src="URL_DA_MUSICA_DO_JOGO.mp3" loop />
-            */}
-            <div style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} className="relative bg-gray-900 shadow-2xl shadow-red-900/40">
+            {/* --- Elementos de Áudio --- */}
+            <audio ref={menuAudioRef} src={menuTracks[currentMenuTrack]} />
+            <audio ref={gameAudioRef} src={gameTracks[currentGameTrack]} />
+
+            <div style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} className="relative bg-black shadow-2xl shadow-red-900/40">
                 {renderGameState()}
             </div>
         </div>
     );
 }
+
+export default App;

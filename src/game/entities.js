@@ -184,13 +184,31 @@ export class Player {
 
 export class Platform {
     constructor(x, y, width) { this.x = x; this.y = y; this.width = width; this.height = PLATFORM_HEIGHT; }
-    draw(ctx, cameraX, _assets) {
-        ctx.fillStyle = '#616161'; ctx.fillRect(this.x - cameraX, this.y, this.width, this.height);
-        ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(this.x - cameraX, this.y + this.height - 1.5);
-        ctx.lineTo(this.x - cameraX + this.width, this.y + this.height - 1.5); ctx.stroke();
+     draw(ctx, cameraX, assets) {
+        const screenX = this.x - cameraX;
+        const platformTexture = assets?.platform;
+
+        // Desenha a parte de cima da plataforma com textura
+        if (platformTexture && assets.loaded) {
+            ctx.save();
+            const pattern = ctx.createPattern(platformTexture, 'repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(screenX, this.y);
+            ctx.fillRect(0, 0, this.width, this.height);
+            ctx.restore();
+        } else {
+            // Fallback caso a textura não carregue
+            ctx.fillStyle = '#616161';
+            ctx.fillRect(screenX, this.y, this.width, this.height);
+        }
+
+        // Desenha a "terra" embaixo da plataforma
         ctx.fillStyle = '#424242';
-        ctx.fillRect(this.x - cameraX, this.y + this.height, this.width, SCREEN_HEIGHT - (this.y + this.height));
+        ctx.fillRect(screenX, this.y + this.height, this.width, SCREEN_HEIGHT - (this.y + this.height));
+        // Desenha uma linha escura para separar a plataforma da terra
+        ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(screenX, this.y + this.height - 1.5);
+        ctx.lineTo(screenX + this.width, this.y + this.height - 1.5); ctx.stroke();
     }
 }
 
@@ -229,7 +247,7 @@ export class SkeletonMelee extends Enemy {
         this.isAttacking = false;
         this.attackCooldown = 0;
         this.attackFrame = 0;
-        this.attackDuration = 30; // Duração da animação de ataque em frames
+        this.attackDuration = 1; // Duração da animação de ataque em frames
     }
 
     attack() {

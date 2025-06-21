@@ -6,7 +6,11 @@ import { SCREEN_WIDTH, SCREEN_HEIGHT, PLAYER_SPEED, PLATFORM_START_Y } from '../
 const Game = ({ playerStats, onGameOver }) => {
     const canvasRef = useRef(null);
     const playerRef = useRef(null); // Será inicializado no useEffect
-    // const assetsRef = useRef(null); // Não está sendo usado, pode ser removido se não houver planos para assets carregados
+    const assetsRef = useRef({
+        platform: null,
+        background: null,
+        loaded: false,
+    });
 
     const { initialPlatforms, initialEnemies } = React.useMemo(() => {
         const platforms = [
@@ -30,6 +34,30 @@ const Game = ({ playerStats, onGameOver }) => {
     const lastWalkScoreX = useRef(0);
     const difficultyLevelRef = useRef(1);
     const animationFrameIdRef = useRef(null);
+
+    // Efeito para carregar as imagens (assets) do jogo
+    useEffect(() => {
+        const platformImg = new Image();
+        const backgroundImg = new Image();
+        let loadedCount = 0;
+        const totalImages = 2;
+
+        const onImageLoad = () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+                assetsRef.current.loaded = true;
+            }
+        };
+
+        platformImg.onload = onImageLoad;
+        backgroundImg.onload = onImageLoad;
+
+        platformImg.src = '/assets/images/environment/texture.png';
+        backgroundImg.src = '/assets/images/environment/background.png';
+
+        assetsRef.current.platform = platformImg;
+        assetsRef.current.background = backgroundImg;
+    }, []);
 
     // Inicializa o jogador quando playerStats estiver disponível ou mudar
     useEffect(() => {
@@ -132,14 +160,26 @@ const Game = ({ playerStats, onGameOver }) => {
         if (player.position.y > SCREEN_HEIGHT + player.height) player.takeDamage(50);
         if (player.health <= 0) { onGameOver(scoreRef.current); return; }
 
-        const bgGradient = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
-        bgGradient.addColorStop(0, '#0a0a0a'); bgGradient.addColorStop(0.6, '#222034'); bgGradient.addColorStop(1, '#444264');
-        ctx.fillStyle = bgGradient; ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+         // Desenha o fundo com efeito parallax
+        const bg = assetsRef.current.background;
+        if (bg && assetsRef.current.loaded) {
+            const bgWidth = bg.width;
+            const parallaxX = cameraXRef.current * 0.75;
+            const offsetX = parallaxX % bgWidth;
 
-        platformsRef.current.forEach(p => p.draw(ctx, cameraXRef.current, null));
-        enemiesRef.current.forEach(e => e.draw(ctx, cameraXRef.current, null));
-        projectilesRef.current.forEach(p => p.draw(ctx, cameraXRef.current, null));
-        player.draw(ctx, cameraXRef.current, null);
+            ctx.drawImage(bg, -offsetX, 0, bgWidth, SCREEN_HEIGHT);
+            ctx.drawImage(bg, bgWidth - offsetX, 0, bgWidth, SCREEN_HEIGHT); // Desenha a segunda imagem para o tile contínuo
+        } else {
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
+            bgGradient.addColorStop(0, '#0a0a0a'); bgGradient.addColorStop(0.6, '#222034'); bgGradient.addColorStop(1, '#444264');
+            ctx.fillStyle = bgGradient; ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        }
+
+        platformsRef.current.forEach(p => p.draw(ctx, cameraXRef.current, assetsRef.current));
+        enemiesRef.current.forEach(e => e.draw(ctx, cameraXRef.current, assetsRef.current));
+        projectilesRef.current.forEach(p => p.draw(ctx, cameraXRef.current, assetsRef.current));
+        player.draw(ctx, cameraXRef.current, assetsRef.current);
+
 
         ctx.font = 'bold 24px "Cinzel"'; ctx.textAlign = 'left'; ctx.shadowColor = 'black';
         ctx.shadowBlur = 4; ctx.fillStyle = '#D1D1D1';

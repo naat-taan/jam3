@@ -5,7 +5,7 @@ const ShopScreen = ({ onBack, onRestartGame, hasPlayedOnce, totalSouls, upgrades
     const getUpgradeCost = (key) => Math.floor(UPGRADES_CONFIG[key].cost * Math.pow(UPGRADES_CONFIG[key].costIncrease, upgrades[key]));
 
     return (
-        <div className="w-full h-full bg-gray-900 flex flex-col items-center text-white p-6 border-4 border-gray-700 font-cinzel">
+        <div className="w-full h-full flex flex-col items-center text-white p-6 border-4 border-gray-700 font-cinzel">
             <h1 className="text-4xl font-bold mb-4 text-gray-300">Forja das Almas</h1>
             <p className="text-xl text-yellow-400 mb-6">Almas: {totalSouls}</p>
 
