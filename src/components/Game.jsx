@@ -11,7 +11,11 @@ const Game = ({ playerStats, onGameOver }) => {
         background: null,
         background2: null,
         background3: null,
-        background4: null,
+        background4: null, 
+        skeletonMeleeAttack: null,
+        skeletonMeleeWalk: null,
+        skeletonMeleeHurt: null,
+        skeletonMeleeDeath: null,
         loaded: false,
     });
 
@@ -45,8 +49,12 @@ const Game = ({ playerStats, onGameOver }) => {
         const backgroundImg2 = new Image();
         const backgroundImg3 = new Image();
         const backgroundImg4 = new Image();
+        const skeletonMeleeAttackImg = new Image();
+        const skeletonMeleeWalkImg = new Image();
+        const skeletonMeleeHurtImg = new Image();
+        const skeletonMeleeDeathImg = new Image();
         let loadedCount = 0;
-        const totalImages = 5; // 1 plataforma + 4 backgrounds
+        const totalImages = 9; // 1 plataforma + 4 backgrounds + 4 skeleton spritesheets
 
         const onImageLoad = () => {
             loadedCount++;
@@ -60,6 +68,10 @@ const Game = ({ playerStats, onGameOver }) => {
         backgroundImg2.onload = onImageLoad;
         backgroundImg3.onload = onImageLoad;
         backgroundImg4.onload = onImageLoad;
+        skeletonMeleeAttackImg.onload = onImageLoad;
+        skeletonMeleeWalkImg.onload = onImageLoad;
+        skeletonMeleeHurtImg.onload = onImageLoad;
+        skeletonMeleeDeathImg.onload = onImageLoad;
 
         platformImg.src = '/assets/images/environment/texture.png';
         backgroundImg.src = '/assets/images/environment/background.png';
@@ -67,13 +79,20 @@ const Game = ({ playerStats, onGameOver }) => {
         backgroundImg3.src = '/assets/images/environment/background3.png';
         backgroundImg4.src = '/assets/images/environment/background4.png';
 
+        skeletonMeleeAttackImg.src = '/assets/images/enemies/Skeleton_Sword/Attack/Skeleton_Attack_1.png';
+        skeletonMeleeWalkImg.src = '/assets/images/enemies/Skeleton_Sword/Walk/SkeletonWalk.png';
+        skeletonMeleeHurtImg.src = '/assets/images/enemies/Skeleton_Sword/Hurt/SkeletonHurt.png';
+        skeletonMeleeDeathImg.src = '/assets/images/enemies/Skeleton_Sword/Death/Skeleton_Sword_Death.png';
         assetsRef.current.platform = platformImg;
         assetsRef.current.background = backgroundImg;
         assetsRef.current.background2 = backgroundImg2;
         assetsRef.current.background3 = backgroundImg3;
         assetsRef.current.background4 = backgroundImg4;
+        assetsRef.current.skeletonMeleeAttack = skeletonMeleeAttackImg;
+        assetsRef.current.skeletonMeleeWalk = skeletonMeleeWalkImg;
+        assetsRef.current.skeletonMeleeHurt = skeletonMeleeHurtImg;
+        assetsRef.current.skeletonMeleeDeath = skeletonMeleeDeathImg;
     }, []);
-
     // Inicializa o jogador quando playerStats estiver disponível ou mudar
     useEffect(() => {
         playerRef.current = new Player(playerStats);

@@ -253,67 +253,167 @@ export class SkeletonMelee extends Enemy {
         this.patrolStart = pX + 10;
         this.patrolEnd = pX + pW - this.width - 10;
         this.speed = 0.5 + (dL - 1) * 0.07;
-        this.direction = -1;
+        this.direction = -1; // -1 for left, 1 for right
         this.damage = 1 * dL;
 
-        // --- Propriedades de Ataque ---
+        // --- Animation Properties ---
+        this.currentAnimation = 'walk'; // 'walk', 'attack', 'hurt', 'death'
+        this.currentFrame = 0;
+        this.frameCounter = 0;
+        this.animationSpeed = 10; // Frames to show each sprite frame (lower is faster)
+
+        // --- Attack Properties ---
         this.attackRange = 60; // Distância para iniciar o ataque
         this.attackBox = { x: 0, y: 0, width: 50, height: this.height };
         this.isAttacking = false;
         this.attackCooldown = 0;
         this.attackFrame = 0;
-        this.attackDuration = 1; // Duração da animação de ataque em frames
+        // Duração do cooldown de ataque em ticks. A animação de ataque tem 25 ticks (5 frames * 5 ticks/frame).
+        // Um valor maior adiciona uma pausa antes do próximo ataque.
+        this.attackDuration = 60;
     }
 
     attack() {
         if (this.attackCooldown <= 0) {
             this.isAttacking = true;
-            this.attackFrame = 0;
+            this.attackCooldown = this.attackDuration;
+            this.currentFrame = 0; // Start attack animation from first frame
+            this.currentAnimation = 'attack';
+        }
+    }
+
+    takeDamage(amount) {
+        super.takeDamage(amount); // Call parent method for health reduction
+        if (this.health <= 0) {
+            this.currentAnimation = 'death';
+            this.currentFrame = 0;
+        } else {
+            this.currentAnimation = 'hurt';
+            this.currentFrame = 0;
         }
     }
 
     update(projectiles, player) {
-        super.update(projectiles, player);
+        super.update(projectiles, player); // Handles hitCooldown
 
         if (this.attackCooldown > 0) this.attackCooldown--;
 
-        const dx = (player.position.x + player.width / 2) - (this.position.x + this.width / 2);
-        const dy = Math.abs((player.position.y + player.height / 2) - (this.position.y + this.height / 2));
-        const distance = Math.abs(dx);
-
-        if (this.isAttacking) {
-            this.attackFrame++;
-            if (this.attackFrame >= this.attackDuration) {
-                this.isAttacking = false;
-                this.attackFrame = 0;
-                this.attackCooldown = player.attackCooldownDuration * 2;
+        // Handle animation state transitions
+        if (this.health <= 0) {
+            // Already in death animation, no further state changes
+        } else if (this.hitCooldown > 0) {
+            if (this.currentAnimation !== 'hurt') {
+                this.currentAnimation = 'hurt';
+                this.currentFrame = 0;
             }
-        } else if (distance < this.attackRange && dy < this.height) {
-            this.direction = Math.sign(dx);
-            this.attack();
+        } else if (this.isAttacking) {
+            // Attack animation is managed by attackCooldown
+            if (this.attackCooldown <= 0) {
+                this.isAttacking = false;
+                this.currentAnimation = 'walk'; // Return to walk after attack
+            }
         } else {
-            this.position.x += this.speed * this.direction;
-            if (this.position.x <= this.patrolStart && this.direction < 0) this.direction = 1;
-            else if (this.position.x + this.width >= this.patrolEnd && this.direction > 0) this.direction = -1;
+            // Default to walk animation if not attacking, hurt, or dead
+            if (this.currentAnimation !== 'walk') {
+                this.currentAnimation = 'walk';
+                this.currentFrame = 0;
+            }
+            // Movement logic
+            const dx = (player.position.x + player.width / 2) - (this.position.x + this.width / 2);
+            const dy = Math.abs((player.position.y + player.height / 2) - (this.position.y + this.height / 2));
+            const distance = Math.abs(dx);
+
+            if (distance < this.attackRange && dy < this.height) {
+                this.direction = Math.sign(dx);
+                this.attack();
+            } else {
+                this.position.x += this.speed * this.direction;
+                if (this.position.x <= this.patrolStart && this.direction < 0) this.direction = 1;
+                else if (this.position.x + this.width >= this.patrolEnd && this.direction > 0) this.direction = -1;
+            }
         }
 
+        // Update attack box position
         this.attackBox.x = this.direction > 0 ? this.position.x + this.width : this.position.x - this.attackBox.width;
         this.attackBox.y = this.position.y;
     }
 
     draw(ctx, cX, assets) {
-        ctx.fillStyle = this.hitCooldown > 0 ? '#FFFFFF' : '#E0E0E0';
-        ctx.fillRect(this.position.x - cX, this.position.y, this.width, this.height);
-        ctx.fillStyle = '#BDBDBD';
-        ctx.fillRect(this.position.x - cX + (this.direction > 0 ? this.width : -15), this.position.y + 10, 15, 5); // Espada
-        ctx.fillStyle = '#795548';
-        ctx.fillRect(this.position.x - cX + (this.direction < 0 ? this.width : -5), this.position.y + 5, 5, 30); // Braço
-        super.draw(ctx, cX, assets);
+        const screenX = this.position.x - cX;
+        const screenY = this.position.y;
 
-        if (this.isAttacking) {
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-            ctx.fillRect(this.attackBox.x - cX, this.attackBox.y, this.attackBox.width, this.attackBox.height);
+        let currentSpriteSheet;
+        let totalFrames;
+        let frameWidth;
+        let frameHeight;
+        let loop = true;
+
+        if (this.currentAnimation === 'death') {
+            currentSpriteSheet = assets.skeletonMeleeDeath;
+            frameWidth = 21;
+            frameHeight = 15;
+            totalFrames = 7;
+            loop = false; 
+        } else if (this.currentAnimation === 'hurt') {
+            currentSpriteSheet = assets.skeletonMeleeHurt;
+            frameWidth = 13.1;
+            frameHeight = 14;
+            totalFrames = 3;
+            loop = false;
+        } else if (this.currentAnimation === 'attack') {            
+            currentSpriteSheet = assets.skeletonMeleeAttack;
+            frameWidth = 22; 
+            frameHeight = 17;
+            totalFrames = 5;
+            loop = false;
+        } else { // 'walk'
+            currentSpriteSheet = assets.skeletonMeleeWalk;
+            frameWidth = 13.1;
+            frameHeight = 14;
+            totalFrames = 7;
         }
+
+        this.frameCounter++;
+        if (this.frameCounter >= this.animationSpeed) {
+            this.currentFrame = (this.currentFrame + 1) % totalFrames;
+            this.frameCounter = 0;
+        }
+
+        const sourceX = this.currentFrame * frameWidth;
+
+        ctx.save();
+
+        if (this.direction < 0) { // Facing left, flip horizontally
+            ctx.translate(screenX + this.width, screenY);
+            ctx.scale(-1, 1);
+            ctx.drawImage(
+                currentSpriteSheet,
+                sourceX,
+                0,
+                frameWidth,
+                frameHeight,
+                0, // Draw at 0,0 after translation
+                0,
+                this.width, // Scale to enemy width
+                this.height // Scale to enemy height
+            );
+        } else { // Facing right
+            ctx.drawImage(
+                currentSpriteSheet,
+                sourceX,
+                0,
+                frameWidth,
+                frameHeight,
+                screenX,
+                screenY,
+                this.width,
+                this.height
+            );
+        }
+
+        ctx.restore();
+
+        super.draw(ctx, cX, assets);
     }
 }
 
