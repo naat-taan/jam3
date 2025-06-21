@@ -72,16 +72,33 @@ const Game = ({ playerStats, onGameOver }) => {
             });
         }
 
+        // Lógica de dano do inimigo ao jogador
         enemiesRef.current.forEach((enemy) => {
-            if (player.position.x < enemy.position.x + enemy.width && player.position.x + player.width > enemy.position.x &&
-                player.position.y < enemy.position.y + enemy.height && player.position.y + player.height > enemy.position.y) {
-                player.takeDamage(1);
+            if (enemy instanceof SkeletonMelee) {
+                // Lógica de ataque corpo a corpo
+                if (enemy.isAttacking) {
+                    const attackBox = enemy.attackBox;
+                    if (
+                        player.position.x < attackBox.x + attackBox.width &&
+                        player.position.x + player.width > attackBox.x &&
+                        player.position.y < attackBox.y + attackBox.height &&
+                        player.position.y + player.height > attackBox.y
+                    ) {
+                        player.takeDamage(enemy.damage);
+                    }
+                }
+            } else if (!(enemy instanceof SkeletonArcher)) { // Dano de contato para outros inimigos (que não sejam arqueiros)
+                if (player.position.x < enemy.position.x + enemy.width && player.position.x + player.width > enemy.position.x &&
+                    player.position.y < enemy.position.y + enemy.height && player.position.y + player.height > enemy.position.y) {
+                    player.takeDamage(enemy.damage || 1);
+                }
             }
         });
         projectilesRef.current.forEach((proj, index) => {
             if (player.position.x < proj.position.x + proj.width && player.position.x + player.width > proj.position.x &&
                 player.position.y < proj.position.y + proj.height && player.position.y + player.height > proj.position.y) {
-                player.takeDamage(1); projectilesRef.current.splice(index, 1);
+                player.takeDamage(1); // ou proj.damage se projéteis tiverem dano variável
+                projectilesRef.current.splice(index, 1);
             }
         });
 

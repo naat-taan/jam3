@@ -214,19 +214,73 @@ export class Enemy {
 
 export class SkeletonMelee extends Enemy {
     constructor(x, y, pX, pW, dL = 1) {
-        super(x, y); this.health = 2 + Math.floor(dL / 3); this.maxHealth = this.health;
-        this.patrolStart = pX + 10; this.patrolEnd = pX + pW - this.width - 10; this.speed = 0.5 + (dL - 1) * 0.07; this.direction = -1;
+        super(x, y);
+        this.health = 2 + Math.floor(dL / 3);
+        this.maxHealth = this.health;
+        this.patrolStart = pX + 10;
+        this.patrolEnd = pX + pW - this.width - 10;
+        this.speed = 0.5 + (dL - 1) * 0.07;
+        this.direction = -1;
+        this.damage = 1 * dL;
+
+        // --- Propriedades de Ataque ---
+        this.attackRange = 60; // Distância para iniciar o ataque
+        this.attackBox = { x: 0, y: 0, width: 50, height: this.height };
+        this.isAttacking = false;
+        this.attackCooldown = 0;
+        this.attackFrame = 0;
+        this.attackDuration = 30; // Duração da animação de ataque em frames
     }
+
+    attack() {
+        if (this.attackCooldown <= 0) {
+            this.isAttacking = true;
+            this.attackFrame = 0;
+        }
+    }
+
     update(projectiles, player) {
-        super.update(projectiles, player); this.position.x += this.speed * this.direction;
-        if (this.position.x <= this.patrolStart && this.direction < 0) this.direction = 1;
-        else if (this.position.x + this.width >= this.patrolEnd && this.direction > 0) this.direction = -1;
+        super.update(projectiles, player);
+
+        if (this.attackCooldown > 0) this.attackCooldown--;
+
+        const dx = (player.position.x + player.width / 2) - (this.position.x + this.width / 2);
+        const dy = Math.abs((player.position.y + player.height / 2) - (this.position.y + this.height / 2));
+        const distance = Math.abs(dx);
+
+        if (this.isAttacking) {
+            this.attackFrame++;
+            if (this.attackFrame >= this.attackDuration) {
+                this.isAttacking = false;
+                this.attackFrame = 0;
+                this.attackCooldown = player.attackCooldownDuration * 2;
+            }
+        } else if (distance < this.attackRange && dy < this.height) {
+            this.direction = Math.sign(dx);
+            this.attack();
+        } else {
+            this.position.x += this.speed * this.direction;
+            if (this.position.x <= this.patrolStart && this.direction < 0) this.direction = 1;
+            else if (this.position.x + this.width >= this.patrolEnd && this.direction > 0) this.direction = -1;
+        }
+
+        this.attackBox.x = this.direction > 0 ? this.position.x + this.width : this.position.x - this.attackBox.width;
+        this.attackBox.y = this.position.y;
     }
+
     draw(ctx, cX, assets) {
-        ctx.fillStyle = '#E0E0E0'; ctx.fillRect(this.position.x - cX, this.position.y, this.width, this.height);
-        ctx.fillStyle = '#BDBDBD'; ctx.fillRect(this.position.x - cX + (this.direction > 0 ? this.width : -15), this.position.y + 10, 15, 5);
-        ctx.fillStyle = '#795548'; ctx.fillRect(this.position.x - cX + (this.direction < 0 ? this.width : -5), this.position.y + 5, 5, 30);
+        ctx.fillStyle = this.hitCooldown > 0 ? '#FFFFFF' : '#E0E0E0';
+        ctx.fillRect(this.position.x - cX, this.position.y, this.width, this.height);
+        ctx.fillStyle = '#BDBDBD';
+        ctx.fillRect(this.position.x - cX + (this.direction > 0 ? this.width : -15), this.position.y + 10, 15, 5); // Espada
+        ctx.fillStyle = '#795548';
+        ctx.fillRect(this.position.x - cX + (this.direction < 0 ? this.width : -5), this.position.y + 5, 5, 30); // Braço
         super.draw(ctx, cX, assets);
+
+        if (this.isAttacking) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.fillRect(this.attackBox.x - cX, this.attackBox.y, this.attackBox.width, this.attackBox.height);
+        }
     }
 }
 
