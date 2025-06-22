@@ -68,14 +68,26 @@ export class Player {
     }
 
     attack() {
-        if (this.attackCooldown <= 0 && !this.isBlocking && !this.isDead) {
-            this.isAttacking = true;
-            this.attackCooldown = this.attackCooldownDuration;
-            const attackKey = `attack${(this.attackCycle % 3) + 1}`;
-            this.setAnimation(attackKey);
-            this.attackCycle++;
-        }
+    if (this.attackCooldown <= 0 && !this.isBlocking && !this.isDead) {
+        this.isAttacking = true;
+        this.attackCooldown = this.attackCooldownDuration;
+        
+        // Alterna entre os 3 tipos de ataque
+        const attackType = (this.attackCycle % 3) + 1;
+        this.setAnimation(`attack${attackType}`);
+        this.attackCycle++;
+        
+        // Ajusta o hitbox conforme o tipo de ataque
+        this.attackBox = {
+            x: this.direction > 0 
+                ? this.position.x + this.width - 15 
+                : this.position.x - 50 + 15,
+            y: this.position.y + 8,
+            width: 50,
+            height: this.height - 15
+        };
     }
+}
 
     takeDamage(amount) {
         if (this.invincibilityFrames > 0 || this.isDead) return;
@@ -133,7 +145,14 @@ export class Player {
 
         if (!this.isBlocking && this.velocity.x !== 0) { this.direction = Math.sign(this.velocity.x); }
 
-        this.attackBox.x = this.direction > 0 ? this.position.x + this.width : this.position.x - this.attackBox.width;
+        this.attackBox = {
+            x: this.direction > 0
+                ? this.position.x + this.width - 10
+                : this.position.x - 50 + 10,
+            y: this.position.y + 5,
+            width: 50,
+            height: this.height - 10
+        };
         this.attackBox.y = this.position.y;
 
         // Máquina de estados para animação, com prioridades
@@ -230,10 +249,33 @@ export class Player {
                 totalFrames = 3; frameWidth = 13; frameHeight = 15; this.animationSpeed = 8; loop = false;
             } else if (this.currentAnimation.startsWith('attack')) {
                 currentSpriteSheet = assets.Attack_Sprite_Sheet_Full;
-                totalFrames = 8; frameWidth = 16; frameHeight = 17; this.animationSpeed = 4; loop = false;
+                totalFrames = 8; // Total de frames por linha
+                frameWidth = currentSpriteSheet.width / totalFrames; // Calcula automaticamente
+                frameHeight = currentSpriteSheet.height / 3; // 3 linhas na spritesheet
+                this.animationSpeed = 4;
+                loop = false;
+
+                // Determine a linha baseado no tipo de ataque
+                let row = 0;
                 if (this.currentAnimation === 'attack1') row = 0;
                 if (this.currentAnimation === 'attack2') row = 1;
                 if (this.currentAnimation === 'attack3') row = 2;
+
+                // Offset de ajuste fino (ajuste conforme necessário)
+                const offsetX = this.direction > 0 ? 10 : -10;
+                const offsetY = -5;
+
+                ctx.drawImage(
+                    currentSpriteSheet,
+                    (this.currentFrame % totalFrames) * frameWidth,
+                    row * frameHeight,
+                    frameWidth,
+                    frameHeight,
+                    this.position.x - cameraX + offsetX,
+                    this.position.y + offsetY,
+                    this.width,
+                    this.height
+                );
             } else if (this.currentAnimation === 'jump') {
                 currentSpriteSheet = assets.Knight_Full_Jump;
                 totalFrames = 7; frameWidth = 12; frameHeight = 16; this.animationSpeed = 6; loop = false;
@@ -298,7 +340,7 @@ export class Player {
 
 export class Platform {
     constructor(x, y, width) { this.x = x; this.y = y; this.width = width; this.height = PLATFORM_HEIGHT; }
-     draw(ctx, cameraX, assets) {
+    draw(ctx, cameraX, assets) {
         const screenX = this.x - cameraX;
         const platformTexture = assets?.platform;
 
@@ -467,16 +509,16 @@ export class SkeletonMelee extends Enemy {
             frameWidth = 21;
             frameHeight = 15;
             totalFrames = 7;
-            loop = false; 
+            loop = false;
         } else if (this.currentAnimation === 'hurt') {
             currentSpriteSheet = assets.skeletonMeleeHurt;
             frameWidth = 13.1;
             frameHeight = 14;
             totalFrames = 3;
             loop = false;
-        } else if (this.currentAnimation === 'attack') {            
+        } else if (this.currentAnimation === 'attack') {
             currentSpriteSheet = assets.skeletonMeleeAttack;
-            frameWidth = 22; 
+            frameWidth = 22;
             frameHeight = 17;
             totalFrames = 5;
             loop = false;
@@ -537,24 +579,101 @@ export class SkeletonMelee extends Enemy {
 
 export class SkeletonArcher extends Enemy {
     constructor(x, y, dL = 1) {
-        super(x, y); const mH = 2 + Math.floor(dL / 3); this.health = Math.max(1, Math.round(mH / 2));
-        this.maxHealth = this.health; this.shootCooldownTime = 180 - Math.min((dL - 1) * 10, 100);
+        super(x, y);
+        const mH = 2 + Math.floor(dL / 3);
+        this.health = Math.max(1, Math.round(mH / 2));
+        this.maxHealth = this.health;
+        this.shootCooldownTime = 180 - Math.min((dL - 1) * 10, 100);
         this.shootCooldown = Math.random() * 50 + this.shootCooldownTime;
+        
+        // Novas propriedades de animação
+        this.currentAnimation = 'idle';
+        this.currentFrame = 0;
+        this.frameCounter = 0;
+        this.animationSpeed = 8;
+        this.direction = 1; // 1 para direita, -1 para esquerda
     }
+
     update(projectiles, player) {
         super.update(projectiles, player);
         this.shootCooldown--;
+        
+        // Determina direção do jogador
+        this.direction = Math.sign(player.position.x - this.position.x);
+        
+        // Atualiza animação
+        this.frameCounter++;
+        if (this.frameCounter >= this.animationSpeed) {
+            this.frameCounter = 0;
+            this.currentFrame = (this.currentFrame + 1) % 4; // Assume 4 frames por animação
+        }
+        
+        // Lógica de disparo
         const playerDistance = Math.abs(player.position.x - this.position.x);
-        const directionToPlayer = Math.sign(player.position.x - this.position.x);
         if (this.shootCooldown <= 0 && playerDistance < SCREEN_WIDTH / 1.5) {
-            projectiles.push(new Arrow(this.position.x, this.position.y + 15, directionToPlayer));
+            projectiles.push(new Arrow(this.position.x, this.position.y + 15, this.direction));
             this.shootCooldown = this.shootCooldownTime;
+            this.currentAnimation = 'attack';
+            this.currentFrame = 0;
+        } else if (this.shootCooldown > this.shootCooldownTime - 30) {
+            this.currentAnimation = 'attack';
+        } else {
+            this.currentAnimation = 'idle';
         }
     }
-    draw(ctx, cX, assets) {
-        ctx.fillStyle = '#E0E0E0'; ctx.fillRect(this.position.x - cX, this.position.y, this.width, this.height);
-        ctx.fillStyle = '#8D6E63'; ctx.fillRect(this.position.x - cX - 5, this.position.y, 5, this.height);
-        super.draw(ctx, cX, assets);
+
+    draw(ctx, cameraX, assets) {
+        const screenX = this.position.x - cameraX;
+        const screenY = this.position.y;
+
+        let currentSpriteSheet;
+        let frameWidth, frameHeight, totalFrames;
+
+        if (this.currentAnimation === 'attack') {
+            currentSpriteSheet = assets.skeletonArcherAttack;
+            totalFrames = 4; // Ajuste conforme sua spritesheet
+            frameWidth = currentSpriteSheet.width / totalFrames;
+            frameHeight = currentSpriteSheet.height;
+        } else { // 'idle'
+            currentSpriteSheet = assets.skeletonArcherIdle;
+            totalFrames = 4; // Ajuste conforme sua spritesheet
+            frameWidth = currentSpriteSheet.width / totalFrames;
+            frameHeight = currentSpriteSheet.height;
+        }
+
+        ctx.save();
+        
+        // Espelha a imagem se estiver virado para esquerda
+        if (this.direction < 0) {
+            ctx.translate(screenX + this.width, screenY);
+            ctx.scale(-1, 1);
+        } else {
+            ctx.translate(screenX, screenY);
+        }
+
+        // Desenha o frame atual
+        if (currentSpriteSheet && assets.loaded) {
+            ctx.drawImage(
+                currentSpriteSheet,
+                this.currentFrame * frameWidth,
+                0,
+                frameWidth,
+                frameHeight,
+                0,
+                0,
+                this.width,
+                this.height
+            );
+        } else {
+            // Fallback visual
+            ctx.fillStyle = '#8D6E63';
+            ctx.fillRect(0, 0, this.width, this.height);
+        }
+
+        ctx.restore();
+        
+        // Desenha a barra de vida
+        super.draw(ctx, cameraX, assets);
     }
 }
 

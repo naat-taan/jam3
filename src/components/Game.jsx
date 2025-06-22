@@ -23,6 +23,8 @@ const Game = ({ playerStats, onGameOver }) => {
         Death_Sprite_Sheet: null,
         Attack_Sprite_Sheet_Full: null,
         loaded: false,
+        skeletonArcherIdle: null,
+        skeletonArcherAttack: null,
     });
 
     const { initialPlatforms, initialEnemies } = React.useMemo(() => {
@@ -65,6 +67,9 @@ const Game = ({ playerStats, onGameOver }) => {
         const knightHurtImg = new Image();
         const knightDeathImg = new Image();
         const knightAttackImg = new Image();
+        const skeletonArcherIdleImg = new Image();
+        const skeletonArcherAttackImg = new Image();
+
         let loadedCount = 0;
         const totalImages = 15; // 1 plataforma + 4 backgrounds + 4 skeleton + 6 player
 
@@ -90,6 +95,8 @@ const Game = ({ playerStats, onGameOver }) => {
         knightHurtImg.onload = onImageLoad;
         knightDeathImg.onload = onImageLoad;
         knightAttackImg.onload = onImageLoad;
+        skeletonArcherIdleImg.onload = onImageLoad;
+        skeletonArcherAttackImg.onload = onImageLoad;
 
         platformImg.src = '/assets/images/environment/texture.png';
         backgroundImg.src = '/assets/images/environment/background.png';
@@ -108,6 +115,10 @@ const Game = ({ playerStats, onGameOver }) => {
         knightHurtImg.src = '/assets/images/player/character/Knight_Hurt.png';
         knightDeathImg.src = '/assets/images/player/character/Death_Sprite_Sheet.png';
         knightAttackImg.src = '/assets/images/player/character/Attack_Sprite_Sheet_Full.png';
+
+        skeletonArcherIdleImg.src = '/assets/images/enemies/Skeleton_Bow/Walk/Skeleton_Bow_Walk.png';
+        skeletonArcherAttackImg.src = '/assets/images/enemies/Skeleton_Bow/Attack/Skeleton_Bow_Shooting_Once.png';
+
         assetsRef.current.platform = platformImg;
         assetsRef.current.background = backgroundImg;
         assetsRef.current.background2 = backgroundImg2;
@@ -123,6 +134,8 @@ const Game = ({ playerStats, onGameOver }) => {
         assetsRef.current.Knight_Hurt = knightHurtImg;
         assetsRef.current.Death_Sprite_Sheet = knightDeathImg;
         assetsRef.current.Attack_Sprite_Sheet_Full = knightAttackImg;
+        assetsRef.current.skeletonArcherIdle = skeletonArcherIdleImg;
+        assetsRef.current.skeletonArcherAttack = skeletonArcherAttackImg;
     }, []);
     // Inicializa o jogador quando playerStats estiver disponível ou mudar
     useEffect(() => {

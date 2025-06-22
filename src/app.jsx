@@ -125,16 +125,21 @@ function App() {
     };
 
     return (
-        <div className="bg-black flex justify-center items-center min-h-screen">
-            {/* --- Elementos de Áudio --- */}
-            <audio ref={menuAudioRef} src={menuTracks[currentMenuTrack]} />
-            <audio ref={gameAudioRef} src={gameTracks[currentGameTrack]} />
+    <div className="bg-black min-h-screen flex items-center justify-center p-4">
+        {/* Elementos de Áudio */}
+        <audio ref={menuAudioRef} src={menuTracks[currentMenuTrack]} />
+        <audio ref={gameAudioRef} src={gameTracks[currentGameTrack]} />
 
-            <div style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} className="relative bg-black shadow-2xl shadow-red-900/40">
-                {renderGameState()}
-            </div>
+        <div 
+            style={{ 
+                width: SCREEN_WIDTH, 
+                height: SCREEN_HEIGHT,
+            }} 
+            className="relative bg-black shadow-2xl shadow-red-900/40 flex items-center justify-center"
+        >
+            {renderGameState()}
         </div>
-    );
+    </div>
+);
 }
-
 export default App;
