@@ -37,7 +37,23 @@ export class Player {
         this.attackBox = { x: 0, y: 0, width: 50, height: 50 }; // Considere tornar width/height constantes
         this.attackCooldown = 0;
         this.invincibilityFrames = 0;
-        this.direction = 1;
+        this.direction = 1; // 1 for right, -1 for left
+        this.isDead = false;
+
+        // --- Animação ---
+        this.currentAnimation = 'idle';
+        this.currentFrame = 0;
+        this.frameCounter = 0;
+        this.animationSpeed = 10; // Frames para exibir cada sprite (menor é mais rápido)
+        this.attackCycle = 0; // Para alternar entre as animações de ataque
+    }
+
+    setAnimation(name) {
+        if (this.currentAnimation !== name) {
+            this.currentAnimation = name;
+            this.currentFrame = 0;
+            this.frameCounter = 0;
+        }
     }
 
     applyGravity() {
@@ -46,19 +62,23 @@ export class Player {
     }
 
     jump() {
-        if (!this.isJumping && this.onGround && !this.isBlocking) {
+        if (!this.isJumping && this.onGround && !this.isBlocking && !this.isDead) {
             this.velocity.y = -JUMP_FORCE; this.isJumping = true;
         }
     }
 
     attack() {
-        if (this.attackCooldown <= 0 && !this.isBlocking) {
-            this.isAttacking = true; this.attackCooldown = this.attackCooldownDuration;
+        if (this.attackCooldown <= 0 && !this.isBlocking && !this.isDead) {
+            this.isAttacking = true;
+            this.attackCooldown = this.attackCooldownDuration;
+            const attackKey = `attack${(this.attackCycle % 3) + 1}`;
+            this.setAnimation(attackKey);
+            this.attackCycle++;
         }
     }
 
     takeDamage(amount) {
-        if (this.invincibilityFrames > 0) return;
+        if (this.invincibilityFrames > 0 || this.isDead) return;
 
         if (this.isBlocking) {
             this.blockCharges--;
@@ -70,6 +90,9 @@ export class Player {
         } else {
             this.health -= amount;
             this.invincibilityFrames = 90; // Considere tornar uma constante
+            if (this.health > 0) {
+                this.setAnimation('hurt');
+            }
         }
     }
 
@@ -78,13 +101,23 @@ export class Player {
     }
 
     update() {
+        if (this.health <= 0 && !this.isDead) {
+            this.isDead = true;
+            this.setAnimation('death');
+        }
+        if (this.isDead) this.velocity.x = 0;
+
         if (!this.isBlocking) {
             this.position.add(this.velocity);
         } else {
             this.position.y += this.velocity.y; // Permite movimento vertical ao bloquear
         }
 
-        if (this.attackCooldown > 0) this.attackCooldown--;
+        if (this.attackCooldown > 0) {
+            this.attackCooldown--;
+        } else {
+            this.isAttacking = false; // Garante que o estado de ataque termine com o cooldown
+        }
         if (this.invincibilityFrames > 0) this.invincibilityFrames--;
 
         if (this.blockCooldown > 0) {
@@ -103,8 +136,23 @@ export class Player {
         this.attackBox.x = this.direction > 0 ? this.position.x + this.width : this.position.x - this.attackBox.width;
         this.attackBox.y = this.position.y;
 
-        if (this.attackCooldown < this.attackCooldownDuration - 10) { // Ajuste para fim da animação de ataque
-             this.isAttacking = false;
+        // Máquina de estados para animação, com prioridades
+        if (this.isDead) {
+            // A animação 'death' já foi definida e vai travar no último frame
+        } else if (this.isAttacking) {
+            // A animação de ataque já foi definida no método attack() e continuará tocando
+        } else if (this.invincibilityFrames > 0) {
+            // Se estiver em período de invencibilidade (tomou dano), toca a animação 'hurt'
+            this.setAnimation('hurt');
+        } else {
+            // Lógica de animação padrão para movimento
+            if (!this.onGround) {
+                this.setAnimation('jump');
+            } else if (this.velocity.x !== 0 && !this.isBlocking) {
+                this.setAnimation('run');
+            } else {
+                this.setAnimation('idle');
+            }
         }
     }
 
@@ -162,21 +210,87 @@ export class Player {
         }
     }
 
-    draw(ctx, cameraX, _assets) { 
-        ctx.save();
-        ctx.fillStyle = (this.invincibilityFrames > 0 && Math.floor(this.invincibilityFrames / 6) % 2 === 0) ? '#ff4d4d' : '#4A4A4A';
-        ctx.fillRect(this.position.x - cameraX, this.position.y, this.width, this.height);
-        ctx.strokeStyle = '#2c2c2c'; ctx.lineWidth = 2; ctx.strokeRect(this.position.x - cameraX, this.position.y, this.width, this.height);
-        ctx.restore();
+    draw(ctx, cameraX, assets) {
+        // Pula o desenho para criar o efeito de piscar durante a invencibilidade
+        if (this.invincibilityFrames > 0 && Math.floor(this.invincibilityFrames / 6) % 2 === 0) {
+            // Não desenha nada
+        } else {
+            let currentSpriteSheet;
+            let totalFrames;
+            let frameWidth;
+            let frameHeight;
+            let loop = true;
+            let row = 0; // Para o spritesheet de ataque
 
+            if (this.currentAnimation === 'death') {
+                currentSpriteSheet = assets.Death_Sprite_Sheet;
+                totalFrames = 6; frameWidth = 17.67; frameHeight = 15; this.animationSpeed = 10; loop = false;
+            } else if (this.currentAnimation === 'hurt') {
+                currentSpriteSheet = assets.Knight_Hurt;
+                totalFrames = 3; frameWidth = 13; frameHeight = 15; this.animationSpeed = 8; loop = false;
+            } else if (this.currentAnimation.startsWith('attack')) {
+                currentSpriteSheet = assets.Attack_Sprite_Sheet_Full;
+                totalFrames = 8; frameWidth = 16; frameHeight = 17; this.animationSpeed = 4; loop = false;
+                if (this.currentAnimation === 'attack1') row = 0;
+                if (this.currentAnimation === 'attack2') row = 1;
+                if (this.currentAnimation === 'attack3') row = 2;
+            } else if (this.currentAnimation === 'jump') {
+                currentSpriteSheet = assets.Knight_Full_Jump;
+                totalFrames = 7; frameWidth = 12; frameHeight = 16; this.animationSpeed = 6; loop = false;
+            } else if (this.currentAnimation === 'run') {
+                currentSpriteSheet = assets.Knight_Run;
+                totalFrames = 6; frameWidth = 11; frameHeight = 15; this.animationSpeed = 6; loop = true;
+            } else { // 'idle'
+                currentSpriteSheet = assets.Knight_Idle;
+                totalFrames = 5; frameWidth = 14; frameHeight = 15; this.animationSpeed = 12; loop = true;
+            }
+
+            // Lógica de progressão da animação
+            this.frameCounter++;
+            if (this.frameCounter >= this.animationSpeed) {
+                this.frameCounter = 0;
+                if (this.currentFrame < totalFrames - 1) {
+                    this.currentFrame++;
+                } else if (loop) {
+                    this.currentFrame = 0;
+                }
+                // Animações sem loop (como pulo, dano, morte) irão parar no último frame.
+            }
+
+            // Lógica de desenho
+            if (currentSpriteSheet && assets.loaded) {
+                const sourceX = (this.currentFrame % totalFrames) * frameWidth;
+                const sourceY = row * frameHeight;
+
+                ctx.save();
+                let drawX = this.position.x - cameraX;
+                if (this.direction < 0) { // Inverte o canvas se estiver virado para a esquerda
+                    ctx.scale(-1, 1);
+                    drawX = -drawX - this.width;
+                }
+
+                ctx.drawImage(
+                    currentSpriteSheet,
+                    sourceX, sourceY,
+                    frameWidth, frameHeight,
+                    drawX, this.position.y,
+                    this.width, this.height
+                );
+
+                ctx.restore();
+            } else {
+                // Fallback: desenha um retângulo se a imagem não carregou
+                ctx.fillStyle = '#4A4A4A';
+                ctx.fillRect(this.position.x - cameraX, this.position.y, this.width, this.height);
+            }
+        }
+
+        // Desenha o escudo
         if (this.isBlocking) {
             ctx.fillStyle = '#37474F';
             const shieldX = this.direction > 0 ? this.position.x + this.width : this.position.x - 10;
             ctx.fillRect(shieldX - cameraX, this.position.y, 10, this.height);
             ctx.strokeStyle = '#263238'; ctx.strokeRect(shieldX - cameraX, this.position.y, 10, this.height);
-        } else if (this.isAttacking) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.fillRect(this.attackBox.x - cameraX, this.attackBox.y, this.attackBox.width, this.attackBox.height);
         }
         this.drawBlockCooldown(ctx, cameraX);
     }
@@ -375,8 +489,12 @@ export class SkeletonMelee extends Enemy {
 
         this.frameCounter++;
         if (this.frameCounter >= this.animationSpeed) {
-            this.currentFrame = (this.currentFrame + 1) % totalFrames;
             this.frameCounter = 0;
+            if (this.currentFrame < totalFrames - 1) {
+                this.currentFrame++;
+            } else if (loop) {
+                this.currentFrame = 0;
+            }
         }
 
         const sourceX = this.currentFrame * frameWidth;

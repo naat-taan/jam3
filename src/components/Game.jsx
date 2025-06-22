@@ -16,6 +16,12 @@ const Game = ({ playerStats, onGameOver }) => {
         skeletonMeleeWalk: null,
         skeletonMeleeHurt: null,
         skeletonMeleeDeath: null,
+        Knight_Idle: null,
+        Knight_Run: null,
+        Knight_Full_Jump: null,
+        Knight_Hurt: null,
+        Death_Sprite_Sheet: null,
+        Attack_Sprite_Sheet_Full: null,
         loaded: false,
     });
 
@@ -53,8 +59,14 @@ const Game = ({ playerStats, onGameOver }) => {
         const skeletonMeleeWalkImg = new Image();
         const skeletonMeleeHurtImg = new Image();
         const skeletonMeleeDeathImg = new Image();
+        const knightIdleImg = new Image();
+        const knightRunImg = new Image();
+        const knightJumpImg = new Image();
+        const knightHurtImg = new Image();
+        const knightDeathImg = new Image();
+        const knightAttackImg = new Image();
         let loadedCount = 0;
-        const totalImages = 9; // 1 plataforma + 4 backgrounds + 4 skeleton spritesheets
+        const totalImages = 15; // 1 plataforma + 4 backgrounds + 4 skeleton + 6 player
 
         const onImageLoad = () => {
             loadedCount++;
@@ -72,6 +84,12 @@ const Game = ({ playerStats, onGameOver }) => {
         skeletonMeleeWalkImg.onload = onImageLoad;
         skeletonMeleeHurtImg.onload = onImageLoad;
         skeletonMeleeDeathImg.onload = onImageLoad;
+        knightIdleImg.onload = onImageLoad;
+        knightRunImg.onload = onImageLoad;
+        knightJumpImg.onload = onImageLoad;
+        knightHurtImg.onload = onImageLoad;
+        knightDeathImg.onload = onImageLoad;
+        knightAttackImg.onload = onImageLoad;
 
         platformImg.src = '/assets/images/environment/texture.png';
         backgroundImg.src = '/assets/images/environment/background.png';
@@ -83,6 +101,13 @@ const Game = ({ playerStats, onGameOver }) => {
         skeletonMeleeWalkImg.src = '/assets/images/enemies/Skeleton_Sword/Walk/SkeletonWalk.png';
         skeletonMeleeHurtImg.src = '/assets/images/enemies/Skeleton_Sword/Hurt/SkeletonHurt.png';
         skeletonMeleeDeathImg.src = '/assets/images/enemies/Skeleton_Sword/Death/Skeleton_Sword_Death.png';
+
+        knightIdleImg.src = '/assets/images/player/character/Knight_Idle.png';
+        knightRunImg.src = '/assets/images/player/character/Knight_Run.png';
+        knightJumpImg.src = '/assets/images/player/character/Knight_Full_Jump.png';
+        knightHurtImg.src = '/assets/images/player/character/Knight_Hurt.png';
+        knightDeathImg.src = '/assets/images/player/character/Death_Sprite_Sheet.png';
+        knightAttackImg.src = '/assets/images/player/character/Attack_Sprite_Sheet_Full.png';
         assetsRef.current.platform = platformImg;
         assetsRef.current.background = backgroundImg;
         assetsRef.current.background2 = backgroundImg2;
@@ -92,6 +117,12 @@ const Game = ({ playerStats, onGameOver }) => {
         assetsRef.current.skeletonMeleeWalk = skeletonMeleeWalkImg;
         assetsRef.current.skeletonMeleeHurt = skeletonMeleeHurtImg;
         assetsRef.current.skeletonMeleeDeath = skeletonMeleeDeathImg;
+        assetsRef.current.Knight_Idle = knightIdleImg;
+        assetsRef.current.Knight_Run = knightRunImg;
+        assetsRef.current.Knight_Full_Jump = knightJumpImg;
+        assetsRef.current.Knight_Hurt = knightHurtImg;
+        assetsRef.current.Death_Sprite_Sheet = knightDeathImg;
+        assetsRef.current.Attack_Sprite_Sheet_Full = knightAttackImg;
     }, []);
     // Inicializa o jogador quando playerStats estiver disponível ou mudar
     useEffect(() => {
@@ -136,8 +167,11 @@ const Game = ({ playerStats, onGameOver }) => {
             if (keys['ArrowLeft'] || keys['a']) player.velocity.x = -PLAYER_SPEED;
             if (keys['ArrowRight'] || keys['d']) player.velocity.x = PLAYER_SPEED;
         }
-        player.applyGravity(); player.update();
+        
+        player.applyGravity();
         platformsRef.current.forEach(p => player.handleCollision(p));
+        player.update();
+
         enemiesRef.current.forEach(e => e.update(projectilesRef.current, player));
         projectilesRef.current.forEach(p => p.update());
 

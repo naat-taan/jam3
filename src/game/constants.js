@@ -23,7 +23,7 @@ export const ENEMY_SPAWN_CHANCE = 0.7; // Chance base de um inimigo aparecer num
 export const UPGRADES_CONFIG = {
     health: { base: 3, cost: 2500, costIncrease: 2.2, description: "Vida Máxima" },
     damage: { base: 1, cost: 5000, costIncrease: 2.5, description: "Dano da Espada" },
-    attackSpeed: { base: 30, cost: 4000, costIncrease: 2.6, decrease: 2, min: 10, description: "Velocidade de Ataque" },
+    attackSpeed: { base: 35, cost: 4000, costIncrease: 2.6, decrease: 2, min: 10, description: "Velocidade de Ataque" }, // Aumentado para garantir que a animação de ataque (8 frames * 4 de velocidade = 32 frames) seja reproduzida completamente.
     blockCharges: { base: 1, cost: 2000, costIncrease: 2.8, description: "Resistência do Escudo" },
     blockCooldown: { base: 180, cost: 2000, costIncrease: 2.3, decrease: 15, min: 60, description: "Recarga do Escudo" }
 };
