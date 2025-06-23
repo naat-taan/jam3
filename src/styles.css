@@ -26,7 +26,7 @@
 body {
     display: flex;
     justify-content: center;
-    align-items: center;
+    /* align-items: center; */
     min-height: 100vh;
     margin: 0;
     padding: 0;
@@ -37,4 +37,18 @@ body {
 canvas {
     display: block;
     margin: 0 auto;
+}
+
+/* Garante que a tela ocupe 100% da viewport */
+.shop-screen-container {
+    min-height: 100vh;
+}
+
+/* Estilização da scrollbar (opcional) */
+.upgrades-list::-webkit-scrollbar {
+    width: 6px;
+}
+.upgrades-list::-webkit-scrollbar-thumb {
+    background-color: #4a5568;
+    border-radius: 3px;
 }

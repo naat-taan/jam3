@@ -631,14 +631,14 @@ export class SkeletonArcher extends Enemy {
 
         if (this.currentAnimation === 'attack') {
             currentSpriteSheet = assets.skeletonArcherAttack;
-            totalFrames = 4; // Ajuste conforme sua spritesheet
-            frameWidth = currentSpriteSheet.width / totalFrames;
-            frameHeight = currentSpriteSheet.height;
+            totalFrames = 10; // Ajuste conforme sua spritesheet
+            frameWidth = 19;
+            frameHeight = 13;
         } else { // 'idle'
             currentSpriteSheet = assets.skeletonArcherIdle;
-            totalFrames = 4; // Ajuste conforme sua spritesheet
-            frameWidth = currentSpriteSheet.width / totalFrames;
-            frameHeight = currentSpriteSheet.height;
+            totalFrames = 10; // Ajuste conforme sua spritesheet
+            frameWidth = 12;
+            frameHeight = 13;
         }
 
         ctx.save();

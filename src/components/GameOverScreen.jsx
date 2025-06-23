@@ -1,5 +1,5 @@
 import React from 'react';
-
+import '../styles.css';
 const GameOverScreen = ({ score, onGoToMenu, onGoToShop, onRestartGame }) => (
     <div className="w-full h-full bg-black bg-opacity-80 flex flex-col justify-center items-center text-white p-8">
         <h1 className="text-7xl font-cinzel font-bold text-red-700 mb-4 drop-shadow-[0_0_8px_rgba(255,0,0,0.7)]">VOCÊ MORREU</h1>

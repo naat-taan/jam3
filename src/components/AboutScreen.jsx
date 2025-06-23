@@ -1,5 +1,5 @@
 import React from 'react';
-
+import '../styles.css';
 const AboutScreen = ({ onBack }) => (
     <div className="w-full h-full flex flex-col justify-center items-center text-white p-8 border-4 border-gray-700">
         <h1 className="text-4xl font-cinzel font-bold mb-6 text-gray-300">Sobre a Obra</h1>

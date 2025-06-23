@@ -1,6 +1,6 @@
 import React from 'react';
 import { UPGRADES_CONFIG } from '../game/constants';
-
+import '../styles.css';
 const ShopScreen = ({ onBack, onRestartGame, hasPlayedOnce, totalSouls, upgrades, purchaseUpgrade }) => {
     const getUpgradeCost = (key) => Math.floor(UPGRADES_CONFIG[key].cost * Math.pow(UPGRADES_CONFIG[key].costIncrease, upgrades[key]));
 

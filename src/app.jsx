@@ -4,6 +4,7 @@ import AboutScreen from './components/AboutScreen.jsx';
 import ShopScreen from './components/ShopScreen.jsx';
 import Game from './components/Game.jsx';
 import GameOverScreen from './components/GameOverScreen.jsx';
+import './styles.css'; // Certifique-se de que o caminho está correto
 import { SCREEN_WIDTH, SCREEN_HEIGHT, UPGRADES_CONFIG } from './game/constants';
 
 function App() {

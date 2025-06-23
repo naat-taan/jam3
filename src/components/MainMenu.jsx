@@ -1,5 +1,5 @@
 import React from 'react';
-
+import '../styles.css'; // Certifique-se de que o caminho está correto
 const MainMenu = ({ onStart, onAbout, onShop }) => (
     <div className="w-full h-full flex flex-col justify-center items-center text-white p-8 border-4 border-gray-700 relative">
         <div className="flex flex-col items-center">

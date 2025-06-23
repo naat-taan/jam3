@@ -5,7 +5,7 @@ export const PLAYER_WIDTH = 32;
 export const PLAYER_HEIGHT = 48;
 export const PLAYER_SPEED = 5;
 export const JUMP_FORCE = 15;
-export const GRAVITY = 0.7;
+export const GRAVITY = 0.5;
 
 // Constantes para a geração procedural das plataformas
 export const PLATFORM_HEIGHT = 20;
